@@ -1,12 +1,4 @@
-﻿___TERMS_OF_SERVICE___
-
-By creating or modifying this file you agree to Google Tag Manager's Community
-Template Gallery Developer Terms of Service available at
-https://developers.google.com/tag-manager/gallery-tos (or such other URL as
-Google may provide), as modified from time to time.
-
-
-___INFO___
+﻿___INFO___
 
 {
   "displayName": "Facebook Pixel GA4",
@@ -606,6 +598,11 @@ else if (data.ecommerce == "ga4") {
   if (['InitiateCheckout', 'Purchase'].indexOf(eventName) > -1) ga4ObjectProps.num_items = ga4Items.reduce((acc,cur) => {
     return acc + makeNumber(cur.quantity || 1);
   }, 0);
+  
+  // for the pruchse event read the total value from the data layer event
+  if (event == "purchase" && ecommerce.purchase != null && ecommerce.purchase.value != null) {
+    ga4ObjectProps.value = makeNumber(ecommerce.purchase.value);
+  }
 }
 
 // Build the fbq() command arguments
@@ -1481,15 +1478,14 @@ scenarios:
     assertThat(index, 'trackSingle called incorrect number of times').isEqualTo(2);\n\
     assertApi('gtmOnSuccess').wasCalled();"
 - name: GA4 Purchase
-  code: "mockData.ecommerce = \"ga4\";\nmockGA4.fb.num_items = 3;\nmockData.objectPropertyList\
+  code: "mockData.ecommerce = \"ga4\";\nmockGA4.fb_purchase.num_items = 3;\nmockData.objectPropertyList\
     \ = {};\n\nmock('copyFromDataLayer', key => {\n  if (key === 'event') return \"\
-    purchase\";\n  if (key === 'ecommerce') return {\n    purchase: {\n      items:\
-    \ mockGA4.gtm.items\n    }\n  };\n});\n\nlet index = 0;\nmock('copyFromWindow',\
-    \ key => {\n  if (key === 'fbq') return function() {\n    if (arguments[0] ===\
-    \ 'trackSingle') {\n      assertThat(arguments[1], 'trackSingle called with incorrect\
-    \ pixel ID').isEqualTo(mockData.pixelId.split(',')[index]);\n      assertThat(arguments[2],\
-    \ 'trackSingle called with incorrect event name').isEqualTo('Purchase');\n   \
-    \   assertThat(arguments[3], 'trackSingle called with incorrect event parameters').isEqualTo(mockGA4.fb);\n\
+    purchase\";\n  if (key === 'ecommerce') return {\n    purchase: mockGA4.purchase\n\
+    \  };\n});\n\nlet index = 0;\nmock('copyFromWindow', key => {\n  if (key === 'fbq')\
+    \ return function() {\n    if (arguments[0] === 'trackSingle') {\n      assertThat(arguments[1],\
+    \ 'trackSingle called with incorrect pixel ID').isEqualTo(mockData.pixelId.split(',')[index]);\n\
+    \      assertThat(arguments[2], 'trackSingle called with incorrect event name').isEqualTo('Purchase');\n\
+    \      assertThat(arguments[3], 'trackSingle called with incorrect event parameters').isEqualTo(mockGA4.fb_purchase);\n\
     \      index += 1;\n    }\n  };\n});\n     \n// Call runCode to run the template's\
     \ code.\nrunCode(mockData);\n\n// Verify that the tag finished successfully.\n\
     assertThat(index, 'trackSingle called incorrect number of times').isEqualTo(2);\n\
@@ -1540,11 +1536,20 @@ setup: "const mockData = {\n  pixelId: '12345,23456',\n  eventName: 'standard',\
   \ 'c2',\n      price: '2.00',\n      quantity: 2\n    }]\n  },\n  fb: {\n    content_type:\
   \ 'product',\n    contents: [{\n      id: 'i1',\n      quantity: 1,\n      item_price:\
   \ '1.00'\n    },{\n      id: 'i2',\n      quantity: 2,\n      item_price: '2.00'\n\
-  \    }],\n    currency: 'USD',\n    value: 5.00\n  }\n};\n\nconst scriptUrl = 'https://connect.facebook.net/en_US/fbevents.js';\n\
-  \n// Create injectScript mock\nlet success, failure;\nmock('injectScript', (url,\
-  \ onsuccess, onfailure) => {\n  success = onsuccess;\n  failure = onfailure;\n \
-  \ onsuccess();\n});\n\nmock('copyFromWindow', key => {\n  if (key === 'fbq') return\
-  \ () => {};\n});"
+  \    }],\n    currency: 'USD',\n    value: 5.00\n  },\n  purchase: {\n    transaction_id:\
+  \ 'T12345',\n    value: '6.00',\n    tax: '4.90',\n    shipping: '5.99',\n    currency:\
+  \ 'EUR',\n    coupon: 'SUMMER_SALE',\n    items: [{\n      item_id: 'i1',\n    \
+  \  item_name: 'n1',\n      imte_category: 'c1',\n      price: '1.00',\n      quantity:\
+  \ 1\n    },{\n      item_id: 'i2',\n      item_name: 'n2',\n      item_category:\
+  \ 'c2',\n      price: '2.00',\n      quantity: 2\n    }]\n  },\n  fb_purchase: {\n\
+  \    content_type: 'product',\n    contents: [{\n      id: 'i1',\n      quantity:\
+  \ 1,\n      item_price: '1.00'\n    },{\n      id: 'i2',\n      quantity: 2,\n \
+  \     item_price: '2.00'\n    }],\n    currency: 'USD',\n    value: 6.00\n  }\n\
+  };\n\nconst scriptUrl = 'https://connect.facebook.net/en_US/fbevents.js';\n\n//\
+  \ Create injectScript mock\nlet success, failure;\nmock('injectScript', (url, onsuccess,\
+  \ onfailure) => {\n  success = onsuccess;\n  failure = onfailure;\n  onsuccess();\n\
+  });\n\nmock('copyFromWindow', key => {\n  if (key === 'fbq') return () => {};\n\
+  });"
 
 
 ___NOTES___
